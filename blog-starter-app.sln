@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "cdk-deployment", "cdk-deployment", "{5687BF30-B24E-44BA-1CE6-B7ABF2EFF6AA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{6382479C-C921-E670-1791-F03BB3F2B066}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CdkDeployment", "cdk-deployment\src\CdkDeployment\CdkDeployment.csproj", "{BF22B99E-8E6C-B5D3-7E32-5632D7008182}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BF22B99E-8E6C-B5D3-7E32-5632D7008182}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF22B99E-8E6C-B5D3-7E32-5632D7008182}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF22B99E-8E6C-B5D3-7E32-5632D7008182}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF22B99E-8E6C-B5D3-7E32-5632D7008182}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6382479C-C921-E670-1791-F03BB3F2B066} = {5687BF30-B24E-44BA-1CE6-B7ABF2EFF6AA}
+		{BF22B99E-8E6C-B5D3-7E32-5632D7008182} = {6382479C-C921-E670-1791-F03BB3F2B066}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A0DACE6E-CA11-4B06-AFB8-45D498958DF5}
+	EndGlobalSection
+EndGlobal
