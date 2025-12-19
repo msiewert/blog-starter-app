@@ -1,72 +1,93 @@
-# A statically generated blog example using Next.js, Markdown, and TypeScript
+# Next.js Blog Starter - AWS Deployment
 
-This is the existing [blog-starter](https://github.com/vercel/next.js/tree/canary/examples/blog-starter) plus TypeScript.
+A statically generated blog using Next.js, Markdown, and TypeScript, deployed to AWS.
 
-This example showcases Next.js's [Static Generation](https://nextjs.org/docs/app/building-your-application/routing/layouts-and-templates) feature using Markdown files as the data source.
+**Live Demo:** [https://d2d4nyf8x6q72s.cloudfront.net](https://d2d4nyf8x6q72s.cloudfront.net)
 
-The blog posts are stored in `/_posts` as Markdown files with front matter support. Adding a new Markdown file in there will create a new blog post.
+## AWS Deployment Strategy
 
-To create the blog posts we use [`remark`](https://github.com/remarkjs/remark) and [`remark-html`](https://github.com/remarkjs/remark-html) to convert the Markdown files into an HTML string, and then send it down as a prop to the page. The metadata of every post is handled by [`gray-matter`](https://github.com/jonschlinkert/gray-matter) and also sent in props to the page.
+**Architecture Diagram:** [View on draw.io](./docs/aws-architecture-diagram.drawio)
 
-## Demo
+### How the Pipeline Deploys This Application
 
-[https://next-blog-starter.vercel.app/](https://next-blog-starter.vercel.app/)
+This deployment is **fully automated** - the CDK pipeline handles all infrastructure provisioning and application deployment without manual intervention.
 
-## Deploy your own
+**Infrastructure Deployment (Automated):**
+- CDK pipeline creates S3 bucket with static website hosting
+- Configures bucket policy for public read access
+- Provisions CloudFront distribution with S3 origin
+- Sets up custom error pages and caching policies
+- Enables HTTPS with default CloudFront certificate
+- Creates IAM roles with least-privilege permissions
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/next.js/tree/canary/examples/blog-starter&project-name=blog-starter&repository-name=blog-starter)
+**Application Deployment (Automated):**
+- Pipeline triggers on Git push to main branch
+- CDK synthesizes and deploys infrastructure changes
+- CodeBuild builds Next.js application
+- Syncs static files to S3 bucket
+- Invalidates CloudFront cache for immediate updates
 
-### Related examples
+### Components
+- **Amazon S3**: Static file hosting with website configuration
+- **Amazon CloudFront**: Global CDN with edge caching and HTTPS
+- **AWS CodePipeline**: CI/CD orchestration with GitHub integration
+- **AWS CodeBuild**: Automated build environment with Node.js runtime
+- **AWS CDK**: Infrastructure as Code for automated provisioning
 
-- [AgilityCMS](/examples/cms-agilitycms)
-- [Builder.io](/examples/cms-builder-io)
-- [ButterCMS](/examples/cms-buttercms)
-- [Contentful](/examples/cms-contentful)
-- [Cosmic](/examples/cms-cosmic)
-- [DatoCMS](/examples/cms-datocms)
-- [DotCMS](/examples/cms-dotcms)
-- [Drupal](/examples/cms-drupal)
-- [Enterspeed](/examples/cms-enterspeed)
-- [Ghost](/examples/cms-ghost)
-- [GraphCMS](/examples/cms-graphcms)
-- [Kontent.ai](/examples/cms-kontent-ai)
-- [MakeSwift](/examples/cms-makeswift)
-- [Payload](/examples/cms-payload)
-- [Plasmic](/examples/cms-plasmic)
-- [Prepr](/examples/cms-prepr)
-- [Prismic](/examples/cms-prismic)
-- [Sanity](/examples/cms-sanity)
-- [Sitecore XM Cloud](/examples/cms-sitecore-xmcloud)
-- [Sitefinity](/examples/cms-sitefinity)
-- [Storyblok](/examples/cms-storyblok)
-- [TakeShape](/examples/cms-takeshape)
-- [Tina](/examples/cms-tina)
-- [Umbraco](/examples/cms-umbraco)
-- [Umbraco heartcore](/examples/cms-umbraco-heartcore)
-- [Webiny](/examples/cms-webiny)
-- [WordPress](/examples/cms-wordpress)
-- [Blog Starter](/examples/blog-starter)
+**Next.js Configuration:**
+- Static export enabled via `output: 'export'` in next.config.js
+- Trailing slashes and unoptimized images for static hosting
+- Build generates static files to /out directory
 
-## How to use
+## Build Pipeline Details
 
-Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
+### Pipeline Architecture
 
-```bash
-npx create-next-app --example blog-starter blog-starter-app
-```
+**Source Stage:**
+- **Tool**: AWS CodePipeline with GitHub integration
+- **Trigger**: Webhook on push to main branch
+- **Action**: Downloads source code and passes to build stage
 
-```bash
-yarn create next-app --example blog-starter blog-starter-app
-```
+**Build Stage:**
+- **Tool**: AWS CodeBuild
+- **Runtime**: Amazon Linux 2, Node.js 18
+- **Build Commands**:
+  ```bash
+  # Install dependencies with clean install
+  npm ci
+  
+  # Build Next.js application (includes static export)
+  npm run build
+  ```
+- **Artifacts**: Static files in /out directory
 
-```bash
-pnpm create next-app --example blog-starter blog-starter-app
-```
+**Deploy Stage:**
+- **Tool**: AWS CodeBuild Step in CDK Pipeline
+- **Actions**:
+  1. Sync /out directory to S3 bucket (`aws s3 sync out/ s3://$BUCKET_NAME --delete`)
+  2. Invalidate CloudFront cache (`aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"`)
+  3. Environment variables passed from CDK stack outputs
 
-Your blog should be up and running on [http://localhost:3000](http://localhost:3000)! If it doesn't work, post on [GitHub discussions](https://github.com/vercel/next.js/discussions).
+### Build Tools & Configuration
 
-Deploy it to the cloud with [Vercel](https://vercel.com/new?utm_source=github&utm_medium=readme&utm_campaign=next-example) ([Documentation](https://nextjs.org/docs/deployment)).
+**AWS CDK Pipeline:**
+- **Environment**: `LinuxBuildImage.STANDARD_7_0`
+- **Compute**: `ComputeType.SMALL`
+- **Runtime**: Node.js 20, .NET 8.0
+- **Infrastructure as Code**: C# CDK constructs
 
-# Notes
+**GitHub Integration:**
+- **Source**: GitHub repository with AWS Secrets Manager token
+- **Trigger**: Push to main branch
+- **Pipeline**: CDK Pipelines with self-mutating capability
 
-`blog-starter` uses [Tailwind CSS](https://tailwindcss.com) [(v3.0)](https://tailwindcss.com/blog/tailwindcss-v3).
+**Deployment Automation:**
+- **S3 Sync**: `aws s3 sync out/ s3://$BUCKET_NAME --delete`
+- **Cache Invalidation**: `aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"`
+- **IAM Permissions**: Scoped S3 and CloudFront permissions via CDK
+
+### Why This Architecture?
+- **Cost-effective**: Pay only for storage and data transfer
+- **Scalable**: CloudFront handles global traffic spikes
+- **Fast**: Edge locations serve content closest to users
+- **Reliable**: 99.99% SLA with managed AWS services
