@@ -1,7 +1,9 @@
 using Amazon.CDK;
 using Amazon.CDK.AWS.CodeBuild;
+using Amazon.CDK.AWS.IAM;
 using Amazon.CDK.Pipelines;
 using Constructs;
+using Amazon.CDK.AWS.S3;
 
 namespace CdkDeployment
 {
@@ -29,7 +31,8 @@ namespace CdkDeployment
                             {
                                 ["runtime-versions"] = new Dictionary<string, string>
                                 {
-                                    ["dotnet"] = "8.0"
+                                    ["dotnet"] = "8.0",
+                                    ["nodejs"] = "20"
                                 }
                             }
                         }
@@ -65,12 +68,19 @@ namespace CdkDeployment
             var deployStageAdded = pipeline.AddStage(deployStage);
 
             // Add Next.js build and deploy step
-            deployStageAdded.AddPost(new ShellStep("DeployNextJS", new ShellStepProps
+            var deployNextJSStep = new CodeBuildStep("DeployNextJS", new CodeBuildStepProps
             {
                 Commands = new[]
                 {
+                    "node --version",
+                    "npm --version",
+                    "pwd",
+                    "ls -la",
+                    "echo BUCKET_NAME=$BUCKET_NAME",
+                    "echo DISTRIBUTION_ID=$DISTRIBUTION_ID",
                     "npm ci",
                     "npm run build",
+                    "ls -la out/",
                     "aws s3 sync out/ s3://$BUCKET_NAME --delete",
                     "aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths \"/*\""
                 },
@@ -78,8 +88,25 @@ namespace CdkDeployment
                 {
                     ["BUCKET_NAME"] = deployStage.BucketNameOutput,
                     ["DISTRIBUTION_ID"] = deployStage.DistributionIdOutput
+                },
+                RolePolicyStatements = new[]
+                {
+                    new PolicyStatement(new PolicyStatementProps
+                    {
+                        Effect = Effect.ALLOW,
+                        Actions = new[] { "s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket" },
+                        Resources = new[] { "arn:aws:s3:::nextjs-blog-*", "arn:aws:s3:::nextjs-blog-*/*" }
+                    }),
+                    new PolicyStatement(new PolicyStatementProps
+                    {
+                        Effect = Effect.ALLOW,
+                        Actions = new[] { "cloudfront:CreateInvalidation" },
+                        Resources = new[] { "*" }
+                    })
                 }
-            }));
+            });
+
+            deployStageAdded.AddPost(deployNextJSStep);
 
             // Output pipeline name
             // new CfnOutput(this, "PipelineName", new CfnOutputProps
@@ -94,13 +121,15 @@ namespace CdkDeployment
     {
         public CfnOutput BucketNameOutput { get; }
         public CfnOutput DistributionIdOutput { get; }
+        public Bucket WebsiteBucket { get; }
 
         public BlogDeploymentStage(Construct scope, string id, IStageProps props = null) : base(scope, id, props)
         {
             var infraStack = new BlogInfrastructureStack(this, "BlogInfrastructure");
-            
+
             BucketNameOutput = infraStack.BucketNameOutput;
             DistributionIdOutput = infraStack.DistributionIdOutput;
+            WebsiteBucket = infraStack.WebsiteBucket;
         }
     }
 }

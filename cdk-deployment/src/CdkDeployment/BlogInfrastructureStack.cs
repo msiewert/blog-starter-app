@@ -10,11 +10,12 @@ namespace CdkDeployment
     {
         public CfnOutput BucketNameOutput { get; }
         public CfnOutput DistributionIdOutput { get; }
+        public Bucket WebsiteBucket { get; }
 
         public BlogInfrastructureStack(Construct scope, string id, IStackProps props = null) : base(scope, id, props)
         {
             // S3 bucket for hosting static website
-            var websiteBucket = new Bucket(this, "BlogWebsiteBucket", new BucketProps
+            WebsiteBucket = new Bucket(this, "BlogWebsiteBucket", new BucketProps
             {
                 BucketName = $"nextjs-blog-{Account}-{Region}",
                 WebsiteIndexDocument = "index.html",
@@ -32,14 +33,14 @@ namespace CdkDeployment
             });
 
             // Grant CloudFront access to S3 bucket
-            websiteBucket.GrantRead(originAccessIdentity);
+            WebsiteBucket.GrantRead(originAccessIdentity);
 
             // CloudFront distribution
             var distribution = new Distribution(this, "BlogDistribution", new DistributionProps
             {
                 DefaultBehavior = new BehaviorOptions
                 {
-                    Origin = new S3Origin(websiteBucket, new S3OriginProps
+                    Origin = new S3Origin(WebsiteBucket, new S3OriginProps
                     {
                         OriginAccessIdentity = originAccessIdentity
                     }),
@@ -68,7 +69,7 @@ namespace CdkDeployment
             // Output the S3 bucket name for pipeline use
             BucketNameOutput = new CfnOutput(this, "BucketName", new CfnOutputProps
             {
-                Value = websiteBucket.BucketName,
+                Value = WebsiteBucket.BucketName,
                 Description = "S3 bucket name for deployment",
                 ExportName = "BlogBucketName"
             });
